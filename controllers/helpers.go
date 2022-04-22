@@ -149,6 +149,7 @@ func (r *EtcdadmClusterReconciler) generateMachine(ctx context.Context, ec *etcd
 				ConfigRef: bootstrapRef,
 			},
 			FailureDomain: failureDomain,
+			Version:       &ec.Spec.EtcdadmConfigSpec.CloudInitConfig.Version,
 		},
 	}
 	if err := r.Client.Create(ctx, machine); err != nil {
