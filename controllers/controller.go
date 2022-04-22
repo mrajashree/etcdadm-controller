@@ -114,6 +114,10 @@ func (r *EtcdadmClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		log.Info("Cluster Controller has not yet set OwnerRef on etcd")
 		return ctrl.Result{}, nil
 	}
+	if !cluster.Status.InfrastructureReady {
+		log.Info("Infrastructure cluster is not yet ready")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
 
 	if annotations.IsPaused(cluster, etcdCluster) {
 		log.Info("Reconciliation is paused for this object")
