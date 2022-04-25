@@ -133,6 +133,7 @@ func (r *EtcdadmClusterReconciler) generateEtcdadmConfig(ctx context.Context, ec
 }
 
 func (r *EtcdadmClusterReconciler) generateMachine(ctx context.Context, ec *etcdv1.EtcdadmCluster, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string) error {
+	etcdVersion := getEtcdVersion(ec)
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      names.SimpleNameGenerator.GenerateName(ec.Name + "-"),
@@ -149,13 +150,27 @@ func (r *EtcdadmClusterReconciler) generateMachine(ctx context.Context, ec *etcd
 				ConfigRef: bootstrapRef,
 			},
 			FailureDomain: failureDomain,
-			Version:       &ec.Spec.EtcdadmConfigSpec.CloudInitConfig.Version,
+			Version:       &etcdVersion,
 		},
 	}
 	if err := r.Client.Create(ctx, machine); err != nil {
 		return errors.Wrap(err, "failed to create machine")
 	}
 	return nil
+}
+
+func getEtcdVersion(ec *etcdv1.EtcdadmCluster) string {
+	var version string
+	if ec.Spec.EtcdadmConfigSpec.BottlerocketConfig != nil {
+		etcdImage := ec.Spec.EtcdadmConfigSpec.BottlerocketConfig.EtcdImage
+		lastInd := strings.LastIndex(etcdImage, ":")
+		if lastInd > 0 && lastInd < len(etcdImage)-1 {
+			version = etcdImage[lastInd+1:]
+		}
+	} else if ec.Spec.EtcdadmConfigSpec.CloudInitConfig != nil {
+		version = ec.Spec.EtcdadmConfigSpec.CloudInitConfig.Version
+	}
+	return version
 }
 
 func getEtcdMachineAddress(machine *clusterv1.Machine) string {
